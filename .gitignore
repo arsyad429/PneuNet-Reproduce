@@ -43,6 +43,7 @@ weights/
 # Hasil eksperimen lokal, cache, laporan yang dapat memuat citra X-ray.
 /outputs/
 /outputs_*/
+/output_*/
 /tmp/
 /cache/
 *.log

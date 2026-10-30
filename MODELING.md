@@ -44,21 +44,21 @@ Normalisasi ImageNet dilakukan sekali di dalam adapter ResNet50 pretrained. Mode
 | Preprocessing pertama + smoke | True | True | smoke |
 | Full setelah cache tersedia | True | False | full |
 
-Default publikasi adalah laporan (`RUN_TRAINING=False`) dan pilihan mode training `smoke`. Fresh clone belum berisi artefak laporan. Tentukan workflow sebelum Run All. Cell laporan full dilewati ketika smoke diaktifkan.
+Konfigurasi saat ini adalah `RUN_TRAINING=True`, `REBUILD_PREPROCESSING=True`, dan mode `full`. Periksa pengaturan sebelum Run All. Untuk laporan saja gunakan kedua flag `False`; untuk smoke gunakan mode `smoke`. Cell laporan full dilewati saat smoke atau saat belum ada run full lengkap.
 
-Smoke menggunakan dua citra train dan dua validation, satu epoch dan satu update optimizer. Nilai smoke hanya memeriksa alur kode, bukan performa model. Full menyimpan checkpoint terbaik lalu mengevaluasi train, validation, dan test. Runner menempatkan run baru di `outputs/modeling/`.
+Smoke menggunakan dua citra train dan dua validation, satu epoch dan satu update optimizer. Nilai smoke hanya memeriksa alur kode, bukan performa model. Full menyimpan checkpoint terbaik lalu mengevaluasi train, validation, dan test. Runner menempatkan run baru di `output_main/modeling/`, `output_resnet_cbam/modeling/`, atau `output_resnet50/modeling/` sesuai notebook, dengan subfolder run bertimestamp.
 
 Untuk full training semua pembanding, pertahankan `SELECTED_MODELS = list(MODEL_NAMES)` dan kedua kondisi. Pembaca laporan mengharapkan semua model/kondisi notebook tersedia; jika menjalankan subset, selaraskan konfigurasi laporan dengan artefak yang benar-benar ada.
 
 ## Membaca laporan tanpa training
 
-Tentukan `SAVED_RUN_DIR` ke satu folder run full yang sesuai arsitektur notebook. Pembaca memeriksa status COMPLETE, identitas model/kondisi, versi arsitektur bila tersedia, history, dan kecocokan metrik terhadap prediksi.
+`SAVED_RUN_DIR = MODELING_RESULTS_ROOT` memilih run full lengkap terbaru secara otomatis. Variabel ini juga menerima path satu folder run full untuk pemilihan manual. Pembaca memeriksa status COMPLETE, identitas model/kondisi, versi arsitektur bila tersedia, history, dan kecocokan metrik terhadap prediksi.
 
-Bagian **Confusion matrix dan classification report seluruh eksperimen** memiliki tiga cell mandiri. Pada kernel baru, fallback menunjuk `outputs/modeling/saved_full_v1`, `saved_full_v2`, atau `saved_full_v3`; ubah konfigurasi terlebih dahulu bila memakai path lain. Hanya CSV dan `result.json` yang dibutuhkan. Pada run full yang baru selesai di kernel yang sama, laporan memakai `modeling_output_dir` dari runner.
+Bagian **Confusion matrix dan classification report seluruh eksperimen** memiliki tiga cell mandiri. Pada kernel baru, fallback memilih run full lengkap terbaru dari folder modeling notebook terkait. Pembaca laporan hanya membaca CSV dan `result.json`; pemilihan run memeriksa keberadaan history, prediksi semua split, dan `best.pt`. Jika belum ada run lengkap, laporan dilewati dengan pesan informasi. Pada run full yang baru selesai di kernel yang sama, laporan memakai `modeling_output_dir` dari runner.
 
 Urutan kelas: NORMAL=0, PNEUMONIA=1. Matrix berbentuk `[[TN, FP], [FN, TP]]`. Prediksi tersimpan dipakai untuk menghitung precision, recall, F1, accuracy, dan support; nilainya dicocokkan dengan `result.json`. Warna matrix dinormalisasi per kelas aktual, sedangkan anotasi memuat hitungan dan persentase.
 
-`CLASSIFICATION_REPORT_SPLITS = ("train", "val", "test")` menampilkan seluruh split. Test menjadi acuan performa generalisasi; train dan validation bukan out-of-fold. Dengan `CLASSIFICATION_REPORT_EXPORT=True`, tabel agregat dan figure disimpan di `outputs/notebook_reports/<varian>/classification_reports/`.
+`CLASSIFICATION_REPORT_SPLITS = ("train", "val", "test")` menampilkan seluruh split. Test menjadi acuan performa generalisasi; train dan validation bukan out-of-fold. Dengan `CLASSIFICATION_REPORT_EXPORT=True`, tabel agregat dan figure disimpan di `<OUTPUT_ROOT>/notebook_reports/classification_reports/`.
 
 ## Grad-CAM dan latency
 

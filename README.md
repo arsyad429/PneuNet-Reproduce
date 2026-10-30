@@ -93,7 +93,7 @@ Rasio 50:25:25 merupakan **rancangan eksperimen proyek**, bukan rasio optimum un
 
 Semua pengaturan berada pada **cell kode pertama**. Alur notebook: load data → EDA → preprocessing dan augmentasi → modeling dan evaluasi → error analysis dengan Grad-CAM.
 
-Nilai awal `RUN_TRAINING=False` mencegah training otomatis. Dataset, cache, dan artefak full tidak ada pada fresh clone; **pilih salah satu alur di bawah sebelum menjalankan seluruh notebook**. Mode laporan tidak akan mengunduh atau membuat artefak yang belum tersedia.
+Konfigurasi notebook saat ini disiapkan untuk full training: `RUN_TRAINING=True`, `REBUILD_PREPROCESSING=True`, dan `MODELING_RUN_MODE="full"`. Dataset, cache, dan artefak full tidak ada pada fresh clone; **pilih alur dan periksa konfigurasi sebelum menjalankan seluruh notebook**. Untuk mode laporan tanpa training, gunakan kedua flag `False`.
 
 ### 1. Preprocessing dan smoke test
 
@@ -121,14 +121,22 @@ MODELING_RUN_MODE = "full"
 
 Training berjalan maksimal 50 epoch, memakai Adam LR 0,001, effective batch 32 dengan micro-batch 4, dropout 0,3, explicit L2 0,001, dan early stopping patience 7 berdasarkan validation loss. Checkpoint terbaik dipilih sebelum evaluasi test. Detail ada pada [MODELING.md](MODELING.md).
 
-Artefak baru disimpan ke `outputs/modeling/pytorch_full_.../` dan diabaikan Git. **Full training hanya berjalan jika diaktifkan sendiri oleh pengguna.** Pembuatan repository ini tidak menjalankan ulang training.
+Artefak baru disimpan dalam folder modeling terpisah dan diabaikan Git:
+
+| Notebook | Folder modeling |
+|---|---|
+| Main ablation | `output_main/modeling/` |
+| PneuNet + ResNet50 CBAM | `output_resnet_cbam/modeling/` |
+| ResNet50 pretrained | `output_resnet50/modeling/` |
+
+Setiap run menggunakan subfolder `pytorch_full_...` atau `pytorch_smoke_...` bertimestamp. Untuk full training sekaligus preprocessing pertama, gunakan `REBUILD_PREPROCESSING=True`; setelah cache tersedia, gunakan `False`. Ketiga notebook berbagi cache selama dataset dan parameter preprocessing sama. Pembaruan repository ini tidak menjalankan full training.
 
 ### 3. Laporan dari eksperimen yang sudah selesai
 
 ```python
 RUN_TRAINING = False
 REBUILD_PREPROCESSING = False
-SAVED_RUN_DIR = WORKSPACE / "outputs" / "modeling" / "nama_run_full_anda"
+SAVED_RUN_DIR = MODELING_RESULTS_ROOT  # Otomatis memilih run full lengkap terbaru.
 ```
 
 Folder run harus memuat `{model}__{baseline|clahe_aug}/`, dengan struktur:
@@ -146,14 +154,14 @@ nama_run_full_anda/
     └── ...
 ```
 
-Semua model yang tercantum pada `MODEL_NAMES` perlu tersedia dalam run notebook yang dipilih. `SAVED_RUN_DIR` awal memakai placeholder `outputs/modeling/saved_full_v1`, `saved_full_v2`, atau `saved_full_v3`; ganti dengan lokasi artefak Anda.
+Semua model yang tercantum pada `MODEL_NAMES` perlu tersedia dalam run notebook yang dipilih. `SAVED_RUN_DIR = MODELING_RESULTS_ROOT` otomatis memilih run full lengkap terbaru, dengan pemeriksaan status, identitas eksperimen, history, file prediksi, checkpoint, dan versi arsitektur. Untuk memilih run tertentu, isi path subfolder run tersebut. Run smoke, run belum lengkap, dan run tidak cocok dilewati. Jika belum ada run lengkap, cell laporan menampilkan pesan informasi. Setelah full training, laporan memakai `modeling_output_dir` yang baru selesai.
 
-- **Confusion matrix dan classification report:** jalankan hanya tiga cell pada bagian tersebut. CSV prediksi dan `result.json` cukup; tidak memuat model, checkpoint, atau citra. `CLASSIFICATION_REPORT_SPLITS = ("train", "val", "test")` menampilkan seluruh split; gunakan `("test",)` bila hanya ingin test.
+- **Confusion matrix dan classification report:** jalankan hanya tiga cell pada bagian tersebut. Pembaca laporan memakai CSV prediksi dan `result.json` tanpa memuat bobot model atau citra; pemilihan run otomatis mengharapkan struktur run full lengkap di atas. `CLASSIFICATION_REPORT_SPLITS = ("train", "val", "test")` menampilkan seluruh split; gunakan `("test",)` bila hanya ingin test.
 - **Kurva train/validation loss:** dibaca dari `full_history.csv`.
 - **Grad-CAM:** memerlukan `best.pt`, dataset/cache yang sesuai, definisi model, dan GPU. Ini melakukan forward/backward untuk visualisasi, tanpa update optimizer.
 - **Tabel latency:** membaca CSV benchmark yang telah tersedia; tidak menjalankan benchmark otomatis. Ringkasan historis yang diterbitkan tersedia pada `docs/experiment_results.csv`.
 
-Output laporan tersimpan di `outputs/notebook_reports/`. Untuk keseluruhan 16 eksperimen pada tiga split, tersedia 48 confusion matrix dan 48 classification report setelah artefak lokal disediakan. Angka laporan diperiksa kembali terhadap `result.json`.
+Output laporan tersimpan di `<OUTPUT_ROOT>/notebook_reports/` milik setiap notebook, termasuk subfolder `classification_reports/`. Untuk keseluruhan 16 eksperimen pada tiga split, tersedia 48 confusion matrix dan 48 classification report setelah artefak lokal disediakan. Angka laporan diperiksa kembali terhadap `result.json`.
 
 ## Ringkasan hasil historis
 
@@ -184,7 +192,7 @@ Pada CLAHE+augmentasi, PneuNet v1 memiliki latency sekitar **4,87 kali lebih cep
 
 ## Berkas yang tidak diterbitkan
 
-`.gitignore` mengecualikan dataset/citra, `.npy/.npz`, `.pt/.pth/.ckpt`, format model lain, folder `outputs*`, `tmp`, environment lokal, arsip, serta PDF/PPTX. Sebelum mengirim perubahan notebook, kosongkan **outputs dan attachments** agar citra atau data per sampel tidak ikut masuk ke Git.
+`.gitignore` mengecualikan dataset/citra, `.npy/.npz`, `.pt/.pth/.ckpt`, format model lain, folder `outputs*`/`output_*`, `tmp`, environment lokal, arsip, serta PDF/PPTX. Sebelum mengirim perubahan notebook, kosongkan **outputs dan attachments** agar citra atau data per sampel tidak ikut masuk ke Git.
 
 ## Referensi
 
